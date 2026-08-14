@@ -3,12 +3,13 @@
 // A configuração web pode ficar no front-end. NUNCA coloque chaves
 // privadas/service-account aqui.
 window.FIREBASE_CONFIG = {
-  apiKey: "COLE_AQUI",
-  authDomain: "SEU-PROJETO.firebaseapp.com",
-  projectId: "SEU-PROJETO",
-  storageBucket: "SEU-PROJETO.firebasestorage.app",
-  messagingSenderId: "COLE_AQUI",
-  appId: "COLE_AQUI"
+  apiKey: "AIzaSyCBpeyqgC7-fsjICctIT4o-j4mvwhfUvaA",
+  authDomain: "cronograma-uni.firebaseapp.com",
+  projectId: "cronograma-uni",
+  storageBucket: "cronograma-uni.firebasestorage.app",
+  messagingSenderId: "203072878513",
+  appId: "1:203072878513:web:2a8083da511928bbebaf90",
+  measurementId: "G-DHYHS572GJ"
 };
 
 // Para ativar FCM depois, coloque a Web Push certificate key (VAPID)
