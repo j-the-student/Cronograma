@@ -14,4 +14,4 @@ window.FIREBASE_CONFIG = {
 
 // Para ativar FCM depois, coloque a Web Push certificate key (VAPID)
 // aqui. O recurso é opcional nesta versão.
-window.FIREBASE_VAPID_KEY = "COLE_AQUI";
+window.FIREBASE_VAPID_KEY = "BJNeRWDTDQo0umiDym_YeoQFhW36FJ_VDQn19YyLWPkFQT2KjVv-qavCLGbrNEJ92V_czOCkGdT4snnFmGpULYY";
