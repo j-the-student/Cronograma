@@ -1,0 +1,27 @@
+Coloque todos os JS na mesma pasta dos HTMLs.
+
+HTMLs:
+login.html -> config.js + firebase-init.js + auth.js
+index.html -> config.js + firebase-init.js + app.js
+calendario.html -> config.js + firebase-init.js + app.js + calendario.js
+estudos.html -> config.js + firebase-init.js + app.js + estudos.js
+projetos.html -> config.js + firebase-init.js + app.js + projetos.js
+
+No Firebase:
+1. Authentication > Sign-in method > Email/Password: ativar.
+2. Firestore Database: criar.
+3. Firestore > Rules: colar firestore.rules e publicar.
+
+Estrutura de dados:
+users/{uid}/tasks
+users/{uid}/events
+users/{uid}/exams
+users/{uid}/studySessions
+users/{uid}/projects
+
+Cronograma de estudos:
+Tranquila: 15 dias antes
+Média: 18 dias antes (~2,5 semanas)
+Difícil: 21 dias antes
+
+O botão de notificações atual só pede permissão e mostra uma notificação de teste. Push automático com site fechado vem na próxima etapa (FCM + service worker + backend/agendamento).
