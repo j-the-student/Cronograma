@@ -11,7 +11,6 @@ function setupTheme(){if(localStorage.getItem("organizador-theme")==="dark")docu
 function setupMenu(){document.getElementById("mobileMenu")?.addEventListener("click",()=>document.querySelector(".sidebar")?.classList.toggle("open"));}
 function setupModals(){document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest(".modal")?.classList.add("hidden"));}
 function setupLogout(){document.getElementById("logoutBtn")?.addEventListener("click",async()=>{await signOut(auth);location.href="login.html";});}
-function setupNotifications(){document.getElementById("notificationBtn")?.addEventListener("click",async()=>{if(!("Notification" in window))return alert("Este navegador não oferece notificações.");const p=await Notification.requestPermission();if(p==="granted")new Notification("Meu Organizador ✦",{body:"Notificações permitidas neste navegador!"});});}
 
 async function loadHome(user){
   const list=document.getElementById("taskList"); if(!list)return;
