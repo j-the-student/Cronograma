@@ -42,6 +42,22 @@ export function localDateString(date = new Date()) {
 }
 
 
+export function formatDateBR(dateString) {
+
+    if (!dateString) {
+        return "";
+    }
+
+    const [
+        year,
+        month,
+        day
+    ] = dateString.split("-");
+
+    return `${day}/${month}/${year}`;
+}
+
+
 export function escapeHTML(value = "") {
 
     return String(value)
@@ -152,6 +168,32 @@ function setupModals() {
             }
         );
 
+
+    document
+        .querySelectorAll(".modal")
+        .forEach(
+            modal => {
+
+                modal.addEventListener(
+                    "click",
+                    event => {
+
+                        if (
+                            event.target === modal
+                        ) {
+
+                            modal.classList.add(
+                                "hidden"
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
 }
 
 
@@ -184,17 +226,13 @@ function setupLogout() {
 
 async function loadHome(user) {
 
-    const list =
+    const taskList =
         document.getElementById(
             "taskList"
         );
 
 
-    /*
-    Se não estivermos no index,
-    não precisa carregar a Home.
-    */
-    if (!list) {
+    if (!taskList) {
         return;
     }
 
@@ -207,22 +245,17 @@ async function loadHome(user) {
 
         /*
         =====================================
-        BUSCAR TASKS E EVENTOS
+        BUSCAR DADOS
 
-        Agora buscamos TODA a coleção e
-        filtramos no JavaScript.
-
-        Assim NÃO precisamos de:
-        where + orderBy
-
-        e consequentemente NÃO precisamos
-        de índice composto.
+        Sem query(), where() ou orderBy().
+        Assim não precisa de índice composto.
         =====================================
         */
 
         const [
             taskSnapshot,
-            eventSnapshot
+            eventSnapshot,
+            examSnapshot
         ] = await Promise.all([
 
             getDocs(
@@ -241,25 +274,30 @@ async function loadHome(user) {
                     user.uid,
                     "events"
                 )
+            ),
+
+            getDocs(
+                collection(
+                    db,
+                    "users",
+                    user.uid,
+                    "exams"
+                )
             )
 
         ]);
 
 
-        /*
-        =====================================
-        TASKS DE HOJE
-        =====================================
-        */
+        /* =====================================
+           TAREFAS DE HOJE
+        ===================================== */
 
         const tasks =
             taskSnapshot.docs
 
                 .map(
                     snapshot => ({
-                        id:
-                            snapshot.id,
-
+                        id: snapshot.id,
                         ...snapshot.data()
                     })
                 )
@@ -270,32 +308,25 @@ async function loadHome(user) {
                 )
 
                 .sort(
-                    (a, b) => {
-
-                        return (
+                    (a, b) =>
+                        (
                             a.time || ""
                         ).localeCompare(
                             b.time || ""
-                        );
-
-                    }
+                        )
                 );
 
 
-        /*
-        =====================================
-        EVENTOS DE HOJE
-        =====================================
-        */
+        /* =====================================
+           EVENTOS DE HOJE
+        ===================================== */
 
         const events =
             eventSnapshot.docs
 
                 .map(
                     snapshot => ({
-                        id:
-                            snapshot.id,
-
+                        id: snapshot.id,
                         ...snapshot.data()
                     })
                 )
@@ -306,25 +337,48 @@ async function loadHome(user) {
                 )
 
                 .sort(
-                    (a, b) => {
-
-                        return (
+                    (a, b) =>
+                        (
                             a.time || ""
                         ).localeCompare(
                             b.time || ""
-                        );
-
-                    }
+                        )
                 );
 
 
-        /*
-        =====================================
-        MOSTRAR TASKS
-        =====================================
-        */
+        /* =====================================
+           PRÓXIMAS PROVAS
+        ===================================== */
 
-        list.innerHTML =
+        const exams =
+            examSnapshot.docs
+
+                .map(
+                    snapshot => ({
+                        id: snapshot.id,
+                        ...snapshot.data()
+                    })
+                )
+
+                .filter(
+                    exam =>
+                        exam.date &&
+                        exam.date >= today
+                )
+
+                .sort(
+                    (a, b) =>
+                        a.date.localeCompare(
+                            b.date
+                        )
+                );
+
+
+        /* =====================================
+           MOSTRAR TAREFAS
+        ===================================== */
+
+        taskList.innerHTML =
             tasks
                 .map(
                     task => `
@@ -333,7 +387,7 @@ async function loadHome(user) {
 
                             <input
                                 class="task-check"
-                                data-id="${task.id}"
+                                data-task-id="${task.id}"
                                 type="checkbox"
                                 ${
                                     task.done
@@ -406,7 +460,7 @@ async function loadHome(user) {
 
                             <button
                                 class="delete-btn"
-                                data-del="${task.id}"
+                                data-delete-task="${task.id}"
                             >
 
                                 ×
@@ -419,10 +473,6 @@ async function loadHome(user) {
                 )
                 .join("");
 
-
-        /*
-        Mensagem "sem tarefas"
-        */
 
         const emptyTasks =
             document.getElementById(
@@ -440,11 +490,9 @@ async function loadHome(user) {
         }
 
 
-        /*
-        =====================================
-        EVENTOS DE HOJE
-        =====================================
-        */
+        /* =====================================
+           MOSTRAR EVENTOS
+        ===================================== */
 
         const eventBox =
             document.getElementById(
@@ -462,6 +510,8 @@ async function loadHome(user) {
                             <div class="event-item">
 
                                 <div class="event-time">
+
+                                    📅
 
                                     ${
                                         escapeHTML(
@@ -517,17 +567,183 @@ async function loadHome(user) {
         }
 
 
-        /*
-        =====================================
-        ESTATÍSTICAS
-        =====================================
-        */
+        /* =====================================
+           MOSTRAR PRÓXIMAS PROVAS
+        ===================================== */
+
+        const upcomingExams =
+            document.getElementById(
+                "upcomingExams"
+            );
+
+
+        if (upcomingExams) {
+
+            if (
+                exams.length === 0
+            ) {
+
+                upcomingExams.innerHTML = `
+
+                    <div class="empty-state">
+
+                        Nenhuma prova futura
+                        cadastrada. 📚
+
+                    </div>
+
+                `;
+
+            }
+
+            else {
+
+                upcomingExams.innerHTML =
+                    exams
+                        .slice(0, 5)
+                        .map(
+                            exam => {
+
+                                const [
+                                    year,
+                                    month,
+                                    day
+                                ] =
+                                    exam.date.split(
+                                        "-"
+                                    );
+
+
+                                const examDate =
+                                    new Date(
+
+                                        Number(year),
+
+                                        Number(month) - 1,
+
+                                        Number(day)
+
+                                    );
+
+
+                                const monthName =
+                                    examDate
+                                        .toLocaleDateString(
+                                            "pt-BR",
+                                            {
+                                                month:
+                                                    "short"
+                                            }
+                                        );
+
+
+                                let difficulty =
+                                    "Média";
+
+
+                                if (
+                                    exam.difficulty ===
+                                    "dificil"
+                                ) {
+
+                                    difficulty =
+                                        "Difícil";
+
+                                }
+
+
+                                if (
+                                    exam.difficulty ===
+                                    "facil"
+                                ) {
+
+                                    difficulty =
+                                        "Tranquila";
+
+                                }
+
+
+                                return `
+
+                                    <div class="exam-mini">
+
+                                        <div class="exam-date">
+
+                                            <strong>
+                                                ${day}
+                                            </strong>
+
+                                            <small>
+                                                ${monthName}
+                                            </small>
+
+                                        </div>
+
+
+                                        <div class="exam-mini-info">
+
+                                            <strong>
+
+                                                📝 ${
+                                                    escapeHTML(
+                                                        exam.subject ||
+                                                        "Prova"
+                                                    )
+                                                }
+
+                                            </strong>
+
+
+                                            <small>
+
+                                                ${difficulty}
+
+                                                •
+
+                                                ${
+                                                    formatDateBR(
+                                                        exam.date
+                                                    )
+                                                }
+
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                `;
+
+                            }
+                        )
+                        .join("");
+
+            }
+
+        }
+
+
+        /* =====================================
+           ESTATÍSTICAS
+        ===================================== */
 
         const done =
             tasks.filter(
                 task =>
                     task.done
             ).length;
+
+
+        const percentage =
+            tasks.length
+
+                ? Math.round(
+                    done /
+                    tasks.length *
+                    100
+                )
+
+                : 0;
 
 
         const totalTasks =
@@ -580,33 +796,19 @@ async function loadHome(user) {
 
         if (progressValue) {
 
-            const percentage =
-                tasks.length
-
-                    ? Math.round(
-                        done /
-                        tasks.length *
-                        100
-                    )
-
-                    : 0;
-
-
             progressValue.textContent =
                 percentage + "%";
 
         }
 
 
-        /*
-        =====================================
-        MARCAR TASK COMO CONCLUÍDA
-        =====================================
-        */
+        /* =====================================
+           MARCAR TAREFA COMO CONCLUÍDA
+        ===================================== */
 
         document
             .querySelectorAll(
-                "[data-id]"
+                "[data-task-id]"
             )
             .forEach(
                 checkbox => {
@@ -623,7 +825,8 @@ async function loadHome(user) {
                                         "users",
                                         user.uid,
                                         "tasks",
-                                        checkbox.dataset.id
+                                        checkbox.dataset
+                                            .taskId
                                     ),
 
                                     {
@@ -638,11 +841,6 @@ async function loadHome(user) {
 
                                 );
 
-
-                                /*
-                                Recarrega a Home
-                                para atualizar progresso.
-                                */
 
                                 await loadHome(
                                     user
@@ -664,15 +862,13 @@ async function loadHome(user) {
             );
 
 
-        /*
-        =====================================
-        EXCLUIR TASK
-        =====================================
-        */
+        /* =====================================
+           EXCLUIR TAREFA
+        ===================================== */
 
         document
             .querySelectorAll(
-                "[data-del]"
+                "[data-delete-task]"
             )
             .forEach(
                 button => {
@@ -689,7 +885,8 @@ async function loadHome(user) {
                                         "users",
                                         user.uid,
                                         "tasks",
-                                        button.dataset.del
+                                        button.dataset
+                                            .deleteTask
                                     )
 
                                 );
@@ -728,7 +925,7 @@ async function loadHome(user) {
 
 
 /* =========================================
-   CRIAR NOVA TASK
+   CRIAR NOVA TAREFA
 ========================================= */
 
 function setupHomeForm(user) {
@@ -762,10 +959,6 @@ function setupHomeForm(user) {
     }
 
 
-    /*
-    ABRIR MODAL
-    */
-
     addButton.addEventListener(
         "click",
         () => {
@@ -779,10 +972,6 @@ function setupHomeForm(user) {
         }
     );
 
-
-    /*
-    SALVAR TASK
-    */
 
     form.addEventListener(
         "submit",
@@ -801,7 +990,9 @@ function setupHomeForm(user) {
 
 
             if (!title) {
+
                 return;
+
             }
 
 
@@ -872,11 +1063,6 @@ function setupHomeForm(user) {
                 );
 
 
-                /*
-                Agora ela deve aparecer
-                imediatamente na Home.
-                */
-
                 await loadHome(
                     user
                 );
@@ -907,16 +1093,15 @@ function setupHomeForm(user) {
 ========================================= */
 
 onAuthStateChanged(
-    auth,
-    async user => {
 
-        /*
-        USUÁRIO NÃO LOGADO
-        */
+    auth,
+
+    async user => {
 
         if (!user) {
 
-            currentUser = null;
+            currentUser =
+                null;
 
 
             if (
@@ -935,10 +1120,6 @@ onAuthStateChanged(
 
         }
 
-
-        /*
-        USUÁRIO LOGADO
-        */
 
         currentUser =
             user;
@@ -967,10 +1148,6 @@ onAuthStateChanged(
         setupLogout();
 
 
-        /*
-        INDEX
-        */
-
         if (
             location.pathname.endsWith(
                 "index.html"
@@ -992,4 +1169,5 @@ onAuthStateChanged(
         }
 
     }
+
 );
