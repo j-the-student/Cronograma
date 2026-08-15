@@ -1,1128 +1,331 @@
-import { auth, db } from "./firebase-init.js";
+<!DOCTYPE html>
+<html lang="pt-BR">
 
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-import {
-    collection,
-    getDocs,
-    addDoc,
-    deleteDoc,
-    doc,
-    serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+    <title>Meu Organizador • Calendário</title>
 
+    <link rel="stylesheet" href="style.css">
+</head>
 
-const grid = document.getElementById("calendarGrid");
-const title = document.getElementById("monthTitle");
-const selectedTitle = document.getElementById("selectedDateTitle");
-const selectedBox = document.getElementById("selectedEvents");
-const empty = document.getElementById("emptySelected");
-const modal = document.getElementById("modal");
-const form = document.getElementById("eventForm");
+<body>
 
-let user = null;
-let current = new Date();
-let selected = iso(new Date());
+    <div class="app-shell">
 
-let calendarItems = [];
+        <!-- MENU LATERAL -->
+        <aside class="sidebar">
 
+            <div class="brand">
+                <span class="brand-mark">✦</span>
 
-const months = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro"
-];
-
+                <div>
+                    <strong>Meu Organizador</strong>
+                    <small>seu cantinho de rotina</small>
+                </div>
+            </div>
 
-function iso(date) {
+            <nav>
 
-    return `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-    ).padStart(2, "0")}-${String(
-        date.getDate()
-    ).padStart(2, "0")}`;
+                <a class="nav-link" href="index.html">
+                    🏠
+                    <span>Hoje</span>
+                </a>
 
-}
+                <a class="nav-link active" href="calendario.html">
+                    📅
+                    <span>Calendário</span>
+                </a>
 
+                <a class="nav-link" href="estudos.html">
+                    📚
+                    <span>Estudos</span>
+                </a>
 
-function br(date) {
+                <a class="nav-link" href="projetos.html">
+                    💼
+                    <span>Projetos</span>
+                </a>
 
-    const [year, month, day] =
-        date.split("-");
+            </nav>
 
-    return `${day}/${month}/${year}`;
+            <div class="sidebar-bottom">
 
-}
+                <span id="userEmail" class="user-email"></span>
 
+                <button id="notificationBtn" class="ghost-btn">
+                    🔔 Notificações
+                </button>
 
-function esc(value = "") {
+                <button id="logoutBtn" class="ghost-btn">
+                    ↪ Sair
+                </button>
 
-    return String(value)
+            </div>
 
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        </aside>
 
-}
 
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
 
-/*
-=================================
-CARREGAR TUDO
-=================================
-*/
+            <header class="topbar">
 
-async function load() {
+                <button
+                    class="mobile-menu"
+                    id="mobileMenu">
+                    ☰
+                </button>
 
-    try {
+                <div>
+                    <p class="eyebrow">
+                        PLANEJAMENTO
+                    </p>
 
-        const base =
-            ["users", user.uid];
+                    <h1>
+                        Calendário
+                    </h1>
+                </div>
 
+                <button
+                    class="icon-btn"
+                    id="themeBtn">
+                    ☼
+                </button>
 
-        const [
-            eventSnapshot,
-            taskSnapshot,
-            examSnapshot,
-            studySnapshot,
-            projectSnapshot
-        ] = await Promise.all([
+            </header>
 
-            getDocs(
-                collection(
-                    db,
-                    ...base,
-                    "events"
-                )
-            ),
 
-            getDocs(
-                collection(
-                    db,
-                    ...base,
-                    "tasks"
-                )
-            ),
+            <!-- CALENDÁRIO -->
+            <section class="calendar-layout">
 
-            getDocs(
-                collection(
-                    db,
-                    ...base,
-                    "exams"
-                )
-            ),
+                <div class="panel calendar-panel">
 
-            getDocs(
-                collection(
-                    db,
-                    ...base,
-                    "studySessions"
-                )
-            ),
+                    <div class="calendar-toolbar">
 
-            getDocs(
-                collection(
-                    db,
-                    ...base,
-                    "projects"
-                )
-            )
+                        <button
+                            class="icon-btn"
+                            id="prevMonth">
+                            ‹
+                        </button>
 
-        ]);
+                        <h2 id="monthTitle">
+                            Carregando...
+                        </h2>
 
+                        <button
+                            class="icon-btn"
+                            id="nextMonth">
+                            ›
+                        </button>
 
-        calendarItems = [];
+                        <button
+                            class="today-btn"
+                            id="goToday">
+                            Hoje
+                        </button>
 
+                    </div>
 
-        /*
-        EVENTOS
-        */
 
-        eventSnapshot.forEach(snapshot => {
+                    <div class="weekdays">
 
-            const item = snapshot.data();
+                        <span>Dom</span>
+                        <span>Seg</span>
+                        <span>Ter</span>
+                        <span>Qua</span>
+                        <span>Qui</span>
+                        <span>Sex</span>
+                        <span>Sáb</span>
 
-            calendarItems.push({
+                    </div>
 
-                id: snapshot.id,
 
-                type: "event",
+                    <div
+                        id="calendarGrid"
+                        class="calendar-grid">
+                    </div>
 
-                date: item.date,
+                </div>
 
-                time: item.time || "",
 
-                title: item.title,
+                <!-- DIA SELECIONADO -->
+                <aside class="panel day-panel">
 
-                category:
-                    item.category || "Outro",
+                    <div class="panel-heading">
 
-                notes:
-                    item.notes || ""
+                        <div>
 
-            });
+                            <span class="eyebrow">
+                                DIA SELECIONADO
+                            </span>
 
-        });
+                            <h2 id="selectedDateTitle">
+                                Selecione um dia
+                            </h2>
 
+                        </div>
 
-        /*
-        TAREFAS
-        */
 
-        taskSnapshot.forEach(snapshot => {
+                        <button
+                            class="primary-btn"
+                            id="addEventBtn">
 
-            const item = snapshot.data();
+                            + Evento
 
-            calendarItems.push({
+                        </button>
 
-                id: snapshot.id,
+                    </div>
 
-                type: "task",
 
-                date: item.date,
+                    <div id="selectedEvents">
+                    </div>
 
-                time: item.time || "",
 
-                title: item.title,
+                    <div
+                        id="emptySelected"
+                        class="empty-state">
 
-                category:
-                    item.category || "Outro",
+                        Clique em um dia para ver
+                        seus compromissos.
 
-                done:
-                    item.done || false
+                    </div>
 
-            });
+                </aside>
 
-        });
+            </section>
 
+        </main>
 
-        /*
-        PROVAS
-        */
+    </div>
 
-        examSnapshot.forEach(snapshot => {
 
-            const item = snapshot.data();
+    <!-- MODAL DE EVENTO -->
+    <div
+        id="modal"
+        class="modal hidden">
 
-            calendarItems.push({
+        <div class="modal-box">
 
-                id: snapshot.id,
+            <button
+                class="modal-close"
+                data-close>
+                ×
+            </button>
 
-                type: "exam",
 
-                date: item.date,
+            <h2>
+                Novo compromisso
+            </h2>
 
-                time: "",
 
-                title:
-                    `Prova — ${item.subject}`,
+            <form id="eventForm">
 
-                category:
-                    "Faculdade",
+                <label>
 
-                notes:
-                    item.topics || ""
+                    Título
 
-            });
+                    <input
+                        id="eventTitle"
+                        type="text"
+                        required>
 
-        });
+                </label>
 
 
-        /*
-        SESSÕES DE ESTUDO
-        */
+                <div class="form-row">
 
-        studySnapshot.forEach(snapshot => {
+                    <label>
 
-            const item = snapshot.data();
+                        Data
 
-            calendarItems.push({
+                        <input
+                            id="eventDate"
+                            type="date"
+                            required>
 
-                id: snapshot.id,
+                    </label>
 
-                type: "study",
 
-                date: item.date,
+                    <label>
 
-                time:
-                    item.time || "",
+                        Horário
 
-                title:
-                    item.subject,
+                        <input
+                            id="eventTime"
+                            type="time">
 
-                category:
-                    "Estudo",
+                    </label>
 
-                phase:
-                    item.phase || "",
+                </div>
 
-                topic:
-                    item.topic || "",
 
-                done:
-                    item.done || false
+                <label>
 
-            });
+                    Categoria
 
-        });
+                    <select id="eventCategory">
 
+                        <option value="Faculdade">
+                            Faculdade
+                        </option>
 
-        /*
-        PROJETOS COM PRAZO
-        */
+                        <option value="Projeto">
+                            Projeto
+                        </option>
 
-        projectSnapshot.forEach(snapshot => {
+                        <option value="Pessoal">
+                            Pessoal
+                        </option>
 
-            const item = snapshot.data();
+                        <option value="Outro">
+                            Outro
+                        </option>
 
-            if (!item.deadline) {
-                return;
-            }
+                    </select>
 
-            calendarItems.push({
+                </label>
 
-                id: snapshot.id,
 
-                type: "project",
+                <label>
 
-                date:
-                    item.deadline,
+                    Descrição
 
-                time: "",
+                    <textarea
+                        id="eventNotes"
+                        rows="3">
+                    </textarea>
 
-                title:
-                    item.name,
+                </label>
 
-                category:
-                    "Projeto",
 
-                notes:
-                    item.description || ""
+                <button
+                    class="primary-btn full"
+                    type="submit">
 
-            });
+                    Salvar compromisso
 
-        });
+                </button>
 
-
-        /*
-        Ordenação local.
-
-        Assim não precisamos criar
-        índice composto só para
-        mostrar o calendário.
-        */
-
-        calendarItems.sort(
-            (a, b) => {
-
-                const dateCompare =
-                    (a.date || "")
-                    .localeCompare(
-                        b.date || ""
-                    );
-
-                if (dateCompare !== 0) {
-                    return dateCompare;
-                }
-
-                return (
-                    a.time || ""
-                ).localeCompare(
-                    b.time || ""
-                );
-
-            }
-        );
-
-
-        render();
-
-        renderSelected();
-
-
-    } catch (error) {
-
-        console.error(
-            "Erro ao carregar calendário:",
-            error
-        );
-
-    }
-
-}
-
-
-/*
-=================================
-CONFIGURAÇÃO DOS TIPOS
-=================================
-*/
-
-function itemConfig(type) {
-
-    const configs = {
-
-        event: {
-            icon: "📅",
-            label: "Compromisso"
-        },
-
-        task: {
-            icon: "✓",
-            label: "Tarefa"
-        },
-
-        exam: {
-            icon: "📝",
-            label: "Prova"
-        },
-
-        study: {
-            icon: "📚",
-            label: "Estudo"
-        },
-
-        project: {
-            icon: "💼",
-            label: "Prazo de projeto"
-        }
-
-    };
-
-
-    return (
-        configs[type] ||
-        {
-            icon: "•",
-            label: "Item"
-        }
-    );
-
-}
-
-
-/*
-=================================
-DESENHAR CALENDÁRIO
-=================================
-*/
-
-function render() {
-
-    const year =
-        current.getFullYear();
-
-    const month =
-        current.getMonth();
-
-
-    const first =
-        new Date(
-            year,
-            month,
-            1
-        ).getDay();
-
-
-    const last =
-        new Date(
-            year,
-            month + 1,
-            0
-        ).getDate();
-
-
-    const prev =
-        new Date(
-            year,
-            month,
-            0
-        ).getDate();
-
-
-    title.textContent =
-        `${months[month]} ${year}`;
-
-
-    grid.innerHTML = "";
-
-
-    /*
-    Dias do mês anterior
-    */
-
-    for (
-        let i = first - 1;
-        i >= 0;
-        i--
-    ) {
-
-        cell(
-            new Date(
-                year,
-                month - 1,
-                prev - i
-            ),
-            true
-        );
-
-    }
-
-
-    /*
-    Mês atual
-    */
-
-    for (
-        let day = 1;
-        day <= last;
-        day++
-    ) {
-
-        cell(
-            new Date(
-                year,
-                month,
-                day
-            ),
-            false
-        );
-
-    }
-
-
-    /*
-    Próximo mês
-    */
-
-    const total =
-        first + last;
-
-
-    const remaining =
-        total % 7
-            ? 7 - (total % 7)
-            : 0;
-
-
-    for (
-        let day = 1;
-        day <= remaining;
-        day++
-    ) {
-
-        cell(
-            new Date(
-                year,
-                month + 1,
-                day
-            ),
-            true
-        );
-
-    }
-
-}
-
-
-/*
-=================================
-CÉLULA
-=================================
-*/
-
-function cell(date, muted) {
-
-    const key =
-        iso(date);
-
-
-    const element =
-        document.createElement("div");
-
-
-    element.className =
-        `calendar-cell${
-            muted
-                ? " muted"
-                : ""
-        }${
-            key === selected
-                ? " selected"
-                : ""
-        }`;
-
-
-    const today =
-        iso(new Date());
-
-
-    element.innerHTML = `
-
-        <div class="day-number">
-
-            ${
-                key === today
-
-                ? `
-                    <span class="today-dot">
-                        ${date.getDate()}
-                    </span>
-                `
-
-                : date.getDate()
-            }
+            </form>
 
         </div>
 
-    `;
+    </div>
 
 
-    const items =
-        calendarItems.filter(
-            item =>
-                item.date === key
-        );
+    <!-- FIREBASE -->
 
+    <script src="config.js"></script>
 
-    /*
-    Mostrar até 4 itens
-    dentro do quadrinho.
-    */
+    <script type="module" src="firebase-init.js"></script>
 
-    items
-        .slice(0, 4)
-        .forEach(item => {
+    <script type="module" src="app.js"></script>
 
-            const config =
-                itemConfig(
-                    item.type
-                );
+    <script type="module" src="calendario.js"></script>
+    <script type="module" src="notifications.js"></script>
 
+</body>
 
-            const line =
-                document.createElement(
-                    "span"
-                );
-
-
-            line.className =
-                `event-dot calendar-${item.type}`;
-
-
-            line.textContent =
-                `${config.icon} ${
-                    item.time
-                        ? item.time + " "
-                        : ""
-                }${item.title}`;
-
-
-            element.appendChild(
-                line
-            );
-
-        });
-
-
-    if (items.length > 4) {
-
-        const more =
-            document.createElement(
-                "span"
-            );
-
-
-        more.className =
-            "event-dot";
-
-
-        more.textContent =
-            `+ ${items.length - 4} item(ns)`;
-
-
-        element.appendChild(
-            more
-        );
-
-    }
-
-
-    element.onclick = () => {
-
-        selected = key;
-
-
-        const eventDate =
-            document.getElementById(
-                "eventDate"
-            );
-
-
-        if (eventDate) {
-            eventDate.value =
-                selected;
-        }
-
-
-        render();
-
-        renderSelected();
-
-    };
-
-
-    grid.appendChild(
-        element
-    );
-
-}
-
-
-/*
-=================================
-DIA SELECIONADO
-=================================
-*/
-
-function renderSelected() {
-
-    selectedTitle.textContent =
-        br(selected);
-
-
-    selectedBox.innerHTML = "";
-
-
-    const items =
-        calendarItems
-
-            .filter(
-                item =>
-                    item.date === selected
-            )
-
-            .sort(
-                (a, b) =>
-                    (
-                        a.time || ""
-                    ).localeCompare(
-                        b.time || ""
-                    )
-            );
-
-
-    empty.style.display =
-        items.length
-            ? "none"
-            : "block";
-
-
-    items.forEach(item => {
-
-        const config =
-            itemConfig(
-                item.type
-            );
-
-
-        const element =
-            document.createElement(
-                "div"
-            );
-
-
-        element.className =
-            `event-item calendar-item-${item.type}`;
-
-
-        let extra = "";
-
-
-        if (
-            item.type === "study"
-        ) {
-
-            extra = `
-
-                <div class="task-meta">
-
-                    ${esc(
-                        item.phase || ""
-                    )}
-
-                    ${
-                        item.topic
-                            ? " — " +
-                              esc(item.topic)
-                            : ""
-                    }
-
-                </div>
-
-            `;
-
-        }
-
-
-        if (
-            item.notes
-        ) {
-
-            extra += `
-
-                <div class="task-meta">
-
-                    ${esc(
-                        item.notes
-                    )}
-
-                </div>
-
-            `;
-
-        }
-
-
-        element.innerHTML = `
-
-            <div class="event-time">
-
-                ${config.icon}
-
-                ${config.label}
-
-                ${
-                    item.time
-                        ? " • " +
-                          esc(item.time)
-                        : ""
-                }
-
-            </div>
-
-
-            <div class="event-title">
-
-                ${
-                    item.done
-                        ? "✓ "
-                        : ""
-                }
-
-                ${esc(item.title)}
-
-            </div>
-
-
-            ${extra}
-
-        `;
-
-
-        /*
-        Só compromissos criados
-        na página Calendário
-        terão botão excluir aqui.
-        */
-
-        if (
-            item.type === "event"
-        ) {
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.className =
-                "delete-btn";
-
-
-            button.textContent =
-                "Excluir";
-
-
-            button.onclick =
-                async () => {
-
-                    if (
-                        !confirm(
-                            "Excluir este compromisso?"
-                        )
-                    ) {
-                        return;
-                    }
-
-
-                    await deleteDoc(
-
-                        doc(
-                            db,
-                            "users",
-                            user.uid,
-                            "events",
-                            item.id
-                        )
-
-                    );
-
-
-                    await load();
-
-                };
-
-
-            element.appendChild(
-                button
-            );
-
-        }
-
-
-        selectedBox.appendChild(
-            element
-        );
-
-    });
-
-}
-
-
-/*
-=================================
-NAVEGAÇÃO
-=================================
-*/
-
-document
-    .getElementById(
-        "prevMonth"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-
-            current.setMonth(
-                current.getMonth() - 1
-            );
-
-            render();
-
-        }
-    );
-
-
-document
-    .getElementById(
-        "nextMonth"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-
-            current.setMonth(
-                current.getMonth() + 1
-            );
-
-            render();
-
-        }
-    );
-
-
-document
-    .getElementById(
-        "goToday"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-
-            current =
-                new Date();
-
-            selected =
-                iso(new Date());
-
-            render();
-
-            renderSelected();
-
-        }
-    );
-
-
-document
-    .getElementById(
-        "addEventBtn"
-    )
-    ?.addEventListener(
-        "click",
-        () => {
-
-            const eventDate =
-                document.getElementById(
-                    "eventDate"
-                );
-
-
-            eventDate.value =
-                selected;
-
-
-            modal.classList.remove(
-                "hidden"
-            );
-
-        }
-    );
-
-
-/*
-=================================
-CRIAR COMPROMISSO
-=================================
-*/
-
-form?.addEventListener(
-    "submit",
-    async event => {
-
-        event.preventDefault();
-
-
-        const data = {
-
-            title:
-                document
-                    .getElementById(
-                        "eventTitle"
-                    )
-                    .value
-                    .trim(),
-
-            date:
-                document
-                    .getElementById(
-                        "eventDate"
-                    )
-                    .value,
-
-            time:
-                document
-                    .getElementById(
-                        "eventTime"
-                    )
-                    .value || "",
-
-            category:
-                document
-                    .getElementById(
-                        "eventCategory"
-                    )
-                    .value,
-
-            notes:
-                document
-                    .getElementById(
-                        "eventNotes"
-                    )
-                    .value
-                    .trim(),
-
-            createdAt:
-                serverTimestamp()
-
-        };
-
-
-        if (
-            !data.title ||
-            !data.date
-        ) {
-            return;
-        }
-
-
-        await addDoc(
-
-            collection(
-                db,
-                "users",
-                user.uid,
-                "events"
-            ),
-
-            data
-
-        );
-
-
-        selected =
-            data.date;
-
-
-        form.reset();
-
-
-        modal.classList.add(
-            "hidden"
-        );
-
-
-        await load();
-
-    }
-);
-
-
-/*
-=================================
-LOGIN
-=================================
-*/
-
-onAuthStateChanged(
-    auth,
-    currentUser => {
-
-        if (!currentUser) {
-            return;
-        }
-
-
-        user =
-            currentUser;
-
-
-        const dateInput =
-            document.getElementById(
-                "eventDate"
-            );
-
-
-        if (dateInput) {
-            dateInput.value =
-                selected;
-        }
-
-
-        load();
-
-    }
-);
+</html>
